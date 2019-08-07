@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"os"
 
-	"go.pedge.io/inject"
-	"go.pedge.io/inject/example/api"
-	"go.pedge.io/inject/example/cloud"
-	"go.pedge.io/inject/example/more"
-	"go.pedge.io/inject/example/stuff"
+	"github.com/eluv-io/inject-go"
+	"github.com/eluv-io/inject-go/example/api"
+	"github.com/eluv-io/inject-go/example/cloud"
+	"github.com/eluv-io/inject-go/example/more"
+	"github.com/eluv-io/inject-go/example/stuff"
 )
 
 func main() {
 	if err := do(); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		_, _ = fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		os.Exit(1)
 	}
 	os.Exit(0)
@@ -34,7 +34,11 @@ func do() error {
 		return err
 	}
 	apiObj := obj.(api.Api)
-	response, err := apiObj.Do(api.Request{Provider: os.Args[1], Foo: "this is fun"})
+	provider := "aws"
+	if len(os.Args) > 1 {
+		provider = os.Args[1]
+	}
+	response, err := apiObj.Do(api.Request{Provider: provider, Foo: "this is fun"})
 	if err != nil {
 		return err
 	}

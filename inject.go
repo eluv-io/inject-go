@@ -368,7 +368,7 @@ For testing, production modules may be overridden with test bindings as follows:
 	injector, err := NewInjector(Override(module).With(override))
 
 */
-package inject // import "go.pedge.io/inject"
+package inject // import "github.com/eluv-io/inject-go"
 
 import (
 	"fmt"

@@ -1,11 +1,11 @@
-package api // import "go.pedge.io/inject/example/api"
+package api // import "github.com/eluv-io/inject-go/example/api"
 
 import (
 	"fmt"
 
-	"go.pedge.io/inject"
-	"go.pedge.io/inject/example/cloud"
-	"go.pedge.io/inject/example/more"
+	"github.com/eluv-io/inject-go"
+	"github.com/eluv-io/inject-go/example/cloud"
+	"github.com/eluv-io/inject-go/example/more"
 )
 
 func NewModule() inject.Module {

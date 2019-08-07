@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"go.pedge.io/inject"
+	"github.com/eluv-io/inject-go"
 )
 
 type GlobalScope string

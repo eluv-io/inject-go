@@ -1,10 +1,7 @@
-[![CircleCI](https://circleci.com/gh/peter-edge/inject-go/tree/master.png)](https://circleci.com/gh/peter-edge/inject-go/tree/master)
-[![Go Report Card](http://goreportcard.com/badge/peter-edge/inject-go)](http://goreportcard.com/report/peter-edge/inject-go)
-[![GoDoc](http://img.shields.io/badge/GoDoc-Reference-blue.svg)](https://godoc.org/go.pedge.io/inject)
-[![MIT License](http://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/peter-edge/inject-go/blob/master/LICENSE)
+[![MIT License](http://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/eluv-io/inject-go/blob/master/LICENSE)
 
 ```go
-import "go.pedge.io/inject"
+import "github.com/eluv-io/inject-go"
 ```
 
 Package inject is guice-inspired dependency injection for Go.

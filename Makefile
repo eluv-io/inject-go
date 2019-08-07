@@ -16,7 +16,7 @@ build: deps
 	go build ./...
 
 lint: testdeps
-	go get -v github.com/golang/lint/golint
+	go get -v golang.org/x/lint/golint
 	golint ./.
 
 vet: testdeps

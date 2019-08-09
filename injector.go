@@ -317,7 +317,11 @@ func (i *injector) Populate(populateStructPtr interface{}) error {
 	return nil
 }
 
-func (i *injector) NewChildInjector(modules ...Module) (Injector, error) {
+func (i *injector) NewChildInjector(overridesType interface{}, modules ...Module) (Injector, error) {
+	overrides, _ := i.Get(overridesType)
+	if om, ok := overrides.(Module); ok {
+		modules = []Module{Override(modules...).With(om)}
+	}
 	injector := &injector{i, make(map[bindingKey]resolvedBinding)}
 	_, err := initInjector(injector, modules)
 	if err != nil {

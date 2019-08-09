@@ -27,6 +27,7 @@ type DependsOnBoth struct {
 
 const gs = GlobalScope("global")
 const rs = RestrictedScope("restricted")
+const rsOverridden = RestrictedScope("restricted overridden")
 
 func TestChildInjector(t *testing.T) {
 	gm := inject.NewModule()
@@ -36,7 +37,7 @@ func TestChildInjector(t *testing.T) {
 
 	rm := inject.NewModule()
 	rm.Bind(RestrictedScope("")).ToSingleton(rs)
-	rinj, err := ginj.NewChildInjector(rm)
+	rinj, err := ginj.NewChildInjector(nil, rm)
 	require.NoError(t, err)
 
 	var dog DependsOnGlobal
@@ -98,8 +99,49 @@ func TestChildInjectorErrors(t *testing.T) {
 	t.Run("re-bind", func(t *testing.T) {
 		rm := inject.NewModule()
 		rm.Bind(GlobalScope("")).ToSingleton(GlobalScope("local"))
-		rinj, err := ginj.NewChildInjector(rm)
+		rinj, err := ginj.NewChildInjector(nil, rm)
 		require.Error(t, err)
 		require.Nil(t, rinj)
+	})
+}
+
+type testChildInjectorOverrides inject.Module
+
+func TestChildInjectorWithOverrides(t *testing.T) {
+	overrides := inject.NewModule()
+	overrides.Bind(RestrictedScope("")).ToSingleton(rsOverridden)
+
+	gm := inject.NewModule()
+	gm.Bind(GlobalScope("")).ToSingleton(gs)
+	gm.Bind((*testChildInjectorOverrides)(nil)).ToSingleton(overrides)
+	ginj, err := inject.NewInjector(gm)
+	require.NoError(t, err)
+
+	rm := inject.NewModule()
+	rm.Bind(RestrictedScope("")).ToSingleton(rs)
+	rinj, err := ginj.NewChildInjector((*testChildInjectorOverrides)(nil), rm)
+	require.NoError(t, err)
+
+	var dog DependsOnGlobal
+	var dor DependsOnRestricted
+	var dob DependsOnBoth
+
+	t.Run("populate global scope", func(t *testing.T) {
+		err = ginj.Populate(&dog)
+		require.NoError(t, err)
+		require.Equal(t, gs, dog.Global)
+	})
+
+	t.Run("populate restricted scope", func(t *testing.T) {
+		err = rinj.Populate(&dor)
+		require.NoError(t, err)
+		require.Equal(t, rsOverridden, dor.Restricted)
+	})
+
+	t.Run("populate both", func(t *testing.T) {
+		err = rinj.Populate(&dob)
+		require.NoError(t, err)
+		require.Equal(t, gs, dob.Global)
+		require.Equal(t, rsOverridden, dob.Restricted)
 	})
 }

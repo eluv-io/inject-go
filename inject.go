@@ -467,7 +467,40 @@ type Injector interface {
 	// injector in addition to the bindings defined in any child modules. An
 	// attempt to redefine bindings of the parent injector in child modules will
 	// result in an error.
-	NewChildInjector(modules ...Module) (Injector, error)
+	//
+	// The overridesType defines a binding key that will be looked up for a
+	// potential override module that will override bindings of the modules of
+	// the child injector. This allows unit tests to override bindings in child
+	// injectors by binding the override modules in the parent injector (or in
+	// any ancestor injector).
+	//
+	// The pattern is the following: define a custom inject.Module type (the
+	// "override module type"), and create the child injector passing a nil
+	// pointer to it:
+	//
+	//    package payments
+	//
+	//    type Overrides inject.Module
+	//
+	//    func child(inj inject.Injector) (inject.Injector, error) {
+	//    	childModules := ...
+	//    	return inj.NewChildInjector((*Overrides)(nil), childModules...)
+	//    }
+	//
+	// That's it for the production code, which does not otherwise use the
+	// override module type. In unit tests, however, you can now define override
+	// bindings for the child injector in its parent:
+	//
+	//    paymentOverrides := inject.NewModule()
+	//    paymentOverrides.BindSingletonConstructor(newMockProcessor)
+	//
+	//    overrides := inject.NewModule()
+	//    overrides.Bind((*payment.Overrides)(nil)).ToSingleton(paymentOverrides)
+	//
+	//    inj, err := inject.NewInjector(inject.Override(NewProductionModule()).With(overrides))
+	//
+	// See example/hierarchical for a working example.
+	NewChildInjector(overridesType interface{}, modules ...Module) (Injector, error)
 }
 
 // NewInjector creates a new Injector for the specified Modules.

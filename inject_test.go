@@ -1510,7 +1510,7 @@ func createInjectors(t *testing.T, module Module) []*namedInjector {
 	{
 		inj, err = NewInjector(module)
 		require.NoError(t, err)
-		inj, err = inj.NewChildInjector()
+		inj, err = inj.NewChildInjector(nil)
 		require.NoError(t, err)
 		injectors = append(injectors, &namedInjector{inj, "empty child"})
 	}
@@ -1519,7 +1519,7 @@ func createInjectors(t *testing.T, module Module) []*namedInjector {
 	{
 		inj, err = NewInjector()
 		require.NoError(t, err)
-		inj, err = inj.NewChildInjector(module)
+		inj, err = inj.NewChildInjector(nil, module)
 		require.NoError(t, err)
 		injectors = append(injectors, &namedInjector{inj, "empty parent"})
 	}

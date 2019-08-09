@@ -36,10 +36,25 @@ func addBindings(target *module, source *module) {
 }
 
 // Override returns a builder that allows replacing bindings of the given
-// source module with equivalent bindings (same binding keys) from other modules.
+// source module(s) with equivalent bindings (same binding keys) from other
+// modules.
+//
 // This should only be used in tests in order to replace production bindings
 // with test bindings:
 //   module := Override(productionModule).With(testModule)
-func Override(source Module) OverrideBuilder {
-	return &override{source: source.(*module)}
+func Override(sources ...Module) OverrideBuilder {
+	return &override{source: Combine(sources...).(*module)}
+}
+
+// Combine combines the given modules into a single module.
+func Combine(modules ...Module) Module {
+	if len(modules) == 0 {
+		return nil
+	}
+	if len(modules) == 1 {
+		return modules[0]
+	}
+	m := NewModule()
+	m.Install(modules...)
+	return m
 }

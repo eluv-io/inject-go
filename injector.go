@@ -267,11 +267,11 @@ func (i *injector) Call(function interface{}) ([]interface{}, error) {
 	}
 	bindingKeys := getParameterBindingKeysForFunc(funcReflectType)
 	if err := i.validateBindingKeys(bindingKeys); err != nil {
-		return nil, err
+		return nil, unwrap(err).withTag("funcReflectType", funcReflectType)
 	}
 	reflectValues, err := i.getReflectValues(bindingKeys)
 	if err != nil {
-		return nil, err
+		return nil, unwrap(err).withTag("funcReflectType", funcReflectType)
 	}
 	returnValues := reflect.ValueOf(function).Call(reflectValues)
 	return reflectValuesToValues(returnValues), nil
@@ -284,11 +284,11 @@ func (i *injector) CallTagged(taggedFunction interface{}) ([]interface{}, error)
 	}
 	bindingKeys := getParameterBindingKeysForTaggedFunc(taggedFuncReflectType)
 	if err := i.validateBindingKeys(bindingKeys); err != nil {
-		return nil, err
+		return nil, unwrap(err).withTag("funcReflectType", taggedFuncReflectType)
 	}
 	reflectValues, err := i.getReflectValues(bindingKeys)
 	if err != nil {
-		return nil, err
+		return nil, unwrap(err).withTag("funcReflectType", taggedFuncReflectType)
 	}
 	structReflectValue := newStructReflectValue(taggedFuncReflectType.In(0))
 	populateStructReflectValue(&structReflectValue, reflectValues)
@@ -303,15 +303,15 @@ func (i *injector) Populate(populateStructPtr interface{}) error {
 	}
 	populateStructValue := reflect.Indirect(reflect.ValueOf(populateStructPtr))
 	if err := verifyStructCanBePopulated(populateStructValue.Type()); err != nil {
-		return err
+		return unwrap(err).withTag("funcReflectType", populateStructPtr)
 	}
 	bindingKeys := getStructFieldBindingKeys(populateStructValue.Type())
 	if err := i.validateBindingKeys(bindingKeys); err != nil {
-		return err
+		return unwrap(err).withTag("funcReflectType", populateStructPtr)
 	}
 	reflectValues, err := i.getReflectValues(bindingKeys)
 	if err != nil {
-		return err
+		return unwrap(err).withTag("funcReflectType", populateStructPtr)
 	}
 	populateStructReflectValue(&populateStructValue, reflectValues)
 	return nil

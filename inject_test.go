@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync/atomic"
 	"testing"
-
 	"time"
 
 	"github.com/stretchr/testify/require"
@@ -434,7 +433,8 @@ func TestConstructorErrReturned(t *testing.T) {
 	for _, injector := range createInjectors(t, module) {
 		t.Run(injector.name, func(t *testing.T) {
 			_, err := injector.Get((*SecondInterface)(nil))
-			require.Equal(t, "XYZ", err.Error())
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "XYZ")
 		})
 	}
 }
@@ -446,6 +446,7 @@ func TestConstructorErrNoBindingReturned(t *testing.T) {
 	module.Bind((*SecondInterface)(nil)).ToConstructor(createSecondInterfaceErrNoBinding)
 	_, err := NewInjector(module)
 	require.Error(t, err)
+	fmt.Println(err)
 	require.Contains(t, err.Error(), injectErrorTypeNoBinding)
 	require.Contains(t, err.Error(), "inject.UnboundInterface")
 }
@@ -538,7 +539,11 @@ func TestSingletonConstructorWithEvilCounterErr(t *testing.T) {
 			}
 			for i := 0; i < goRoutineIterations; i++ {
 				barInterfaceErr := <-evilChan
-				require.Equal(t, "XYZ 1", barInterfaceErr.err.Error())
+				require.Error(t, barInterfaceErr.err)
+				require.Contains(t, barInterfaceErr.err.Error(), "XYZ 1")
+				if i == 0 {
+					fmt.Println(barInterfaceErr.err)
+				}
 			}
 
 			close(evilChan)

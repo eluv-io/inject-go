@@ -2,6 +2,7 @@ package inject
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
 )
 
@@ -24,6 +25,8 @@ const (
 	injectErrorTypeNotStructPtr                   = "Value is not a struct pointer"
 	injectErrorTypeNotSupportedBindType           = "Type is not supported for this binding method"
 	injectErrorTypeBindingErrors                  = "Errors with bindings"
+	injectErrorTypeWrapped                        = "Wrapped standard error"
+	injectErrorTypeConstructorCall                = "Constructor call failed"
 )
 
 var (
@@ -45,6 +48,8 @@ var (
 	errNotStructPtr                   = newInjectError(injectErrorTypeNotStructPtr)
 	errNotSupportedBindType           = newInjectError(injectErrorTypeNotSupportedBindType)
 	errBindingErrors                  = newInjectError(injectErrorTypeBindingErrors)
+	errBindingWrapped                 = newInjectError(injectErrorTypeWrapped)
+	errConstructorCall                = newInjectError(injectErrorTypeConstructorCall)
 )
 
 type injectError struct {
@@ -61,27 +66,63 @@ func (i *injectError) Error() string {
 	if len(i.tags) == 0 {
 		return value
 	}
-	return fmt.Sprintf("%s %s", value, i.tags.String())
+	return fmt.Sprintf("%s\n\t%s", value, strings.ReplaceAll(i.tags.String(), "\n", "\n\t"))
 }
 
-func (i *injectError) withTag(key string, value interface{}) *injectError {
-	return &injectError{i.errorType, append(i.tags, newInjectErrorTag(key, value))}
+func (i *injectError) withTag(key string, value interface{}, nostack ...bool) *injectError {
+	stack := true
+	if len(nostack) > 0 && nostack[0] {
+		stack = false
+	}
+	return &injectError{i.errorType, append(i.tags, newInjectErrorTag(key, value, stack))}
 }
 
 type injectErrorTag struct {
-	key   string
-	value interface{}
+	key     string
+	value   interface{}
+	callers []uintptr
 }
 
-func newInjectErrorTag(key string, value interface{}) *injectErrorTag {
-	return &injectErrorTag{key, value}
+func newInjectErrorTag(key string, value interface{}, stack bool) *injectErrorTag {
+	var callStack []uintptr
+	if stack {
+		callStack = callers(3)
+	}
+	return &injectErrorTag{key, value, callStack}
 }
 
 func (t *injectErrorTag) String() string {
-	if stringer, ok := t.value.(fmt.Stringer); ok {
-		return fmt.Sprintf("%s:%s", t.key, stringer.String())
+	stack := ""
+	if len(t.callers) > 0 {
+		stack = "\n" + printStack(t.callers)
 	}
-	return fmt.Sprintf("%s:%s", t.key, t.value)
+	if stringer, ok := t.value.(fmt.Stringer); ok {
+		return fmt.Sprintf("%s:%s%s", t.key, stringer.String(), stack)
+	}
+	return fmt.Sprintf("%s:%s%s", t.key, t.value, stack)
+}
+
+func printStack(callers []uintptr) string {
+	sb := &strings.Builder{}
+	frames := runtime.CallersFrames(callers)
+	show := false
+	for {
+		frame, more := frames.Next()
+		name := frame.Function
+		if name == "" {
+			show = true
+			fmt.Fprintf(sb, "\t%#x\n", frame.PC)
+		} else if name != "runtime.goexit" && (show || !strings.HasPrefix(name, "runtime.")) {
+			// Hide runtime.goexit and any runtime functions at the beginning.
+			// This is useful mainly for allocation traces.
+			show = true
+			fmt.Fprintf(sb, "\t%s:%d\t%s\n", frame.File, frame.Line, name)
+		}
+		if !more {
+			break
+		}
+	}
+	return sb.String()
 }
 
 type injectErrorTags []*injectErrorTag
@@ -94,5 +135,18 @@ func (ts injectErrorTags) String() string {
 	for i, tag := range ts {
 		s[i] = tag.String()
 	}
-	return fmt.Sprintf("tags{%s}", strings.Join(s, " "))
+	return fmt.Sprintf("%s", strings.Join(s, "\n"))
+}
+
+func unwrap(err error) *injectError {
+	if e, ok := err.(*injectError); ok {
+		return e
+	}
+	return errBindingWrapped.withTag("err", err)
+}
+
+func callers(skip int) []uintptr {
+	var pcs [512]uintptr
+	n := runtime.Callers(skip+1, pcs[:])
+	return pcs[:n]
 }

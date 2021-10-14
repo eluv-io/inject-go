@@ -3,6 +3,7 @@ package inject
 import (
 	"fmt"
 	"reflect"
+	"runtime"
 )
 
 type binding interface {
@@ -89,13 +90,17 @@ func (c *constructorBinding) String() string {
 }
 
 func (c *constructorBinding) validate() error {
-	return c.injector.validateBindingKeys(c.cache.bindingKeys)
+	err := c.injector.validateBindingKeys(c.cache.bindingKeys)
+	if err != nil {
+		return unwrap(err).withTag("constructor", functionTag(c.constructor))
+	}
+	return nil
 }
 
 func (c *constructorBinding) get() (interface{}, error) {
 	reflectValues, err := c.injector.getReflectValues(c.cache.bindingKeys)
 	if err != nil {
-		return nil, err
+		return nil, unwrap(err).withTag("constructor", functionTag(c.constructor))
 	}
 	return callConstructor(c.constructor, reflectValues)
 }
@@ -195,8 +200,14 @@ func callConstructor(constructor interface{}, reflectValues []reflect.Value) (in
 	if len(returnValues) == 2 {
 		ret := returnValues[1].Interface()
 		if ret != nil {
-			return nil, ret.(error)
+			return nil, errConstructorCall.withTag("err", ret, true).
+				withTag("constructor", functionTag(constructor))
 		}
 	}
 	return returnValues[0].Interface(), nil
+}
+
+func functionTag(fn interface{}) interface{} {
+	return fmt.Sprintf("%s %T", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), fn)
+	// return reflect.TypeOf(fn)
 }

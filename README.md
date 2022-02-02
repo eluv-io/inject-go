@@ -1,3 +1,7 @@
+# Dependency Injection in Go
+
+[![](https://github.com/eluv-io/inject-go/actions/workflows/build.yaml/badge.svg)](https://github.com/eluv-io/inject-go/actions?query=workflow%3Abuild)
+[![CodeQL](https://github.com/eluv-io/inject-go/actions/workflows/codeql-analysis.yaml/badge.svg)](https://github.com/eluv-io/inject-go/actions/workflows/codeql-analysis.yaml)
 [![MIT License](http://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/eluv-io/inject-go/blob/master/LICENSE)
 
 ```go

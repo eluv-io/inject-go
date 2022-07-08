@@ -382,6 +382,7 @@ type Module interface {
 	fmt.Stringer
 	BindConstructor(fn interface{})
 	BindSingletonConstructor(fn interface{}) SingletonBuilder
+	BindSingleton(singleton interface{})
 	Bind(from ...interface{}) Builder
 	BindTagged(tag string, from ...interface{}) Builder
 	BindInterface(fromInterface ...interface{}) InterfaceBuilder
@@ -402,7 +403,12 @@ type Module interface {
 	BindTaggedComplex64(tag string) Builder
 	BindTaggedComplex128(tag string) Builder
 	BindTaggedString(tag string) Builder
+	// Install adds all bindings of the other modules to this module.
 	Install(others ...Module)
+	// CallEagerly calls the given function eagerly upon creation of the injector.
+	// This works like BindSingletonConstructor(...).EagerlyAndCall(fn) but without binding a constructor.
+	// Useful to instantiate standalone "services" that are not injected into other components.
+	CallEagerly(function interface{})
 }
 
 // NewModule creates a new Module.

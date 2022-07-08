@@ -48,7 +48,8 @@ func isSupportedBindReflectType(reflectType reflect.Type) bool {
 		reflect.Float32,
 		reflect.Float64,
 		reflect.Complex64,
-		reflect.Complex128:
+		reflect.Complex128,
+		reflect.Func:
 		return true
 	default:
 		return false

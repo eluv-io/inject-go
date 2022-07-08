@@ -42,6 +42,14 @@ func (m *module) bindAuto(singleton bool, fn interface{}) SingletonBuilder {
 	return nil
 }
 
+func (m *module) BindSingleton(singleton interface{}) {
+	typ := reflect.TypeOf(singleton)
+	if typ.Kind() == reflect.Interface {
+		typ = reflect.PtrTo(typ)
+	}
+	m.Bind(typ).ToSingleton(singleton)
+}
+
 func (m *module) Bind(froms ...interface{}) Builder {
 	if !m.verifySupportedTypes(froms, isSupportedBindReflectType) {
 		return newNoOpBuilder()
@@ -186,6 +194,10 @@ func (m *module) install(o *module) {
 	for key, value := range o.bindings {
 		m.setBinding(key, value)
 	}
+}
+
+func (m *module) CallEagerly(function interface{}) {
+	newSingletonBuilder(m, nil).EagerlyAndCall(function)
 }
 
 func (m *module) keyValueStrings() []string {

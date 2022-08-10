@@ -1235,6 +1235,12 @@ func TestEagerSingletons(t *testing.T) {
 			singletonBuilder.EagerlyAndCall(callAndIncrement)
 			return module
 		}, false},
+		{"CallEagerly", func() Module {
+			module := NewModule()
+			module.BindSingletonConstructor(createSimpleInterfaceAndCount)
+			module.CallEagerly(callAndIncrement)
+			return module
+		}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1483,6 +1489,47 @@ func TestBindChannels(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, o, cs)
 
+		})
+	}
+}
+
+type collection struct {
+	s string
+	i int
+}
+
+type stringProvider func() string
+
+func provideString(c *collection) stringProvider {
+	return func() string {
+		return c.s
+	}
+}
+
+type intProvider func() int
+
+func provideInt(c *collection) intProvider {
+	return func() int {
+		return c.i
+	}
+}
+
+func TestBindFunctions(t *testing.T) {
+	module := NewModule()
+	coll := &collection{
+		s: "a string",
+		i: 99,
+	}
+	module.BindSingleton(coll)
+	module.BindSingletonConstructor(provideString)
+	module.BindSingletonConstructor(provideInt)
+	for _, injector := range createInjectors(t, module) {
+		t.Run(injector.name, func(t *testing.T) {
+			_, err := injector.Call(func(sp stringProvider, ip intProvider) {
+				require.Equal(t, coll.s, sp())
+				require.Equal(t, coll.i, ip())
+			})
+			require.NoError(t, err)
 		})
 	}
 }

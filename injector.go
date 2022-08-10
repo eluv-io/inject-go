@@ -38,15 +38,23 @@ func initInjector(injector *injector, modules []Module) (Injector, error) {
 		return nil, err
 	}
 	for _, e := range eager {
-		// create the singleton
-		_, err := injector.get(newBindingKey(e.t))
-		if err != nil {
-			return nil, err
-		}
-		if e.fn != nil {
-			_, err := injector.Call(e.fn)
+		if e.t != nil {
+			// create the singleton
+			_, err := injector.get(newBindingKey(e.t))
 			if err != nil {
 				return nil, err
+			}
+		}
+		if e.fn != nil {
+			res, err := injector.Call(e.fn)
+			if err != nil {
+				return nil, err
+			}
+			if len(res) > 0 {
+				if resErr, isErr := res[len(res)-1].(error); isErr {
+					// the last return argument is a non-nil error - return that!
+					return nil, resErr
+				}
 			}
 		}
 	}

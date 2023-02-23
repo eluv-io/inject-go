@@ -6,5 +6,5 @@ type Service interface {
 }
 
 type Store interface {
-	StoreTransanction(tx string)
+	StoreTransaction(tx string)
 }

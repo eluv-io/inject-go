@@ -15,6 +15,8 @@ func CreateService(parent inject.Injector, config Config) (hierarchical.Service,
 	if err != nil {
 		return nil, err
 	}
+	tree, _ := inj.DependencyTree()
+	fmt.Println(tree)
 	svc, err := inj.Get((*Service)(nil))
 	return svc.(*Service), err
 }

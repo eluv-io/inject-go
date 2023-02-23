@@ -1539,7 +1539,7 @@ func TestInjectorString(t *testing.T) {
 	module.Bind((*SimpleInterface)(nil), SimpleStruct{}).ToSingleton(SimpleStruct{"hello"})
 	for _, injector := range createInjectors(t, module) {
 		t.Run(injector.name, func(t *testing.T) {
-			require.Contains(t, injector.String(), "{type:*inject.Injector}:this@0x")
+			require.Regexp(t, "injector\\{.*github.com/eluv-io/inject-go.createInjectors}", injector.String(), "injector{")
 		})
 	}
 }

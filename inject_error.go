@@ -27,6 +27,7 @@ const (
 	injectErrorTypeBindingErrors                  = "Errors with bindings"
 	injectErrorTypeWrapped                        = "Wrapped standard error"
 	injectErrorTypeConstructorCall                = "Constructor call failed"
+	injectErrorTypeCircularDependency             = "Circular dependency"
 )
 
 var (
@@ -50,6 +51,7 @@ var (
 	errBindingErrors                  = newInjectError(injectErrorTypeBindingErrors)
 	errBindingWrapped                 = newInjectError(injectErrorTypeWrapped)
 	errConstructorCall                = newInjectError(injectErrorTypeConstructorCall)
+	errCircularDependency             = newInjectError(injectErrorTypeCircularDependency)
 )
 
 type injectError struct {

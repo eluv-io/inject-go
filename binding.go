@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
+	"strings"
 )
 
 type binding interface {
@@ -16,7 +17,7 @@ type binding interface {
 
 type resolvedBinding interface {
 	fmt.Stringer
-	validate() error
+	validate(ctx) error
 	get() (interface{}, error)
 }
 
@@ -50,10 +51,13 @@ func newSingletonBinding(singleton interface{}) binding {
 }
 
 func (s *singletonBinding) String() string {
-	return fmt.Sprintf("%v", s.singleton)
+	if inj, ok := s.singleton.(*injector); ok {
+		return fmt.Sprintf(inj.name)
+	}
+	return fmt.Sprintf("singleton %T", s.singleton)
 }
 
-func (s *singletonBinding) validate() error {
+func (s *singletonBinding) validate(ctx) error {
 	return nil
 }
 
@@ -86,11 +90,11 @@ func newConstructorBindingCache(constructor interface{}) *constructorBindingCach
 }
 
 func (c *constructorBinding) String() string {
-	return fmt.Sprintf("%v", c.constructor)
+	return functionTag(c.constructor)
 }
 
-func (c *constructorBinding) validate() error {
-	err := c.injector.validateBindingKeys(c.cache.bindingKeys)
+func (c *constructorBinding) validate(ctx ctx) error {
+	err := c.injector.validateBindings(ctx, c.cache.bindingKeys)
 	if err != nil {
 		return unwrap(err).withTag("constructor", functionTag(c.constructor))
 	}
@@ -116,10 +120,6 @@ type singletonConstructorBinding struct {
 
 func newSingletonConstructorBinding(constructor interface{}) binding {
 	return &singletonConstructorBinding{constructorBinding{constructor, newConstructorBindingCache(constructor), nil}, nil}
-}
-
-func (s *singletonConstructorBinding) String() string {
-	return fmt.Sprintf("%v", s.constructor)
 }
 
 func (s *singletonConstructorBinding) get() (interface{}, error) {
@@ -153,11 +153,11 @@ func newTaggedConstructorBindingCache(constructor interface{}) *taggedConstructo
 }
 
 func (t *taggedConstructorBinding) String() string {
-	return fmt.Sprintf("%v", t.constructor)
+	return functionTag(t.constructor)
 }
 
-func (t *taggedConstructorBinding) validate() error {
-	return t.injector.validateBindingKeys(t.cache.bindingKeys)
+func (t *taggedConstructorBinding) validate(ctx ctx) error {
+	return t.injector.validateBindings(ctx, t.cache.bindingKeys)
 }
 
 func (t *taggedConstructorBinding) get() (interface{}, error) {
@@ -183,10 +183,6 @@ func newTaggedSingletonConstructorBinding(constructor interface{}) binding {
 	return &taggedSingletonConstructorBinding{taggedConstructorBinding{constructor, newTaggedConstructorBindingCache(constructor), nil}, nil}
 }
 
-func (t *taggedSingletonConstructorBinding) String() string {
-	return fmt.Sprintf("%v", t.constructor)
-}
-
 func (t *taggedSingletonConstructorBinding) get() (interface{}, error) {
 	return t.loader.load(t.taggedConstructorBinding.get)
 }
@@ -207,7 +203,7 @@ func callConstructor(constructor interface{}, reflectValues []reflect.Value) (in
 	return returnValues[0].Interface(), nil
 }
 
-func functionTag(fn interface{}) interface{} {
-	return fmt.Sprintf("%s %T", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), fn)
-	// return reflect.TypeOf(fn)
+func functionTag(fn interface{}) string {
+	fnSignature := strings.TrimPrefix(fmt.Sprintf("%T", fn), "func")
+	return fmt.Sprintf("<%s%s>", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), fnSignature)
 }

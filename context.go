@@ -13,10 +13,6 @@ type ctx struct {
 	current *stack
 }
 
-func zeroCtx() ctx {
-	return ctx{}
-}
-
 func newCtx(inj *injector) ctx {
 	itype := "root"
 	if inj.parent != nil {
@@ -27,24 +23,15 @@ func newCtx(inj *injector) ctx {
 }
 
 func (c *ctx) push(key bindingKey, binding resolvedBinding) (err error) {
-	if c.root == nil {
-		return nil
-	}
 	c.current, err = c.current.push(key, binding)
 	return err
 }
 
 func (c *ctx) pop() {
-	if c.root == nil {
-		return
-	}
 	c.current = c.current.pop()
 }
 
 func (c *ctx) tree() DependencyTree {
-	if c.root == nil {
-		return nil
-	}
 	dt := &dependencyTree{s: c.root}
 	return dt
 }
@@ -190,6 +177,9 @@ type dependencyTree struct {
 }
 
 func (d *dependencyTree) String() string {
+	if d == nil {
+		return ""
+	}
 	sb := &strings.Builder{}
 	d.s.print(sb, "", "")
 	return sb.String()

@@ -526,5 +526,5 @@ func NewInjector(modules ...Module) (Injector, error) {
 // Note that Modules are not thread-safe, it is your responsibility to make sure
 // all Modules have all bindings in place before passing them as parameters to NewInjector.
 func NewNamedInjector(name string, modules ...Module) (Injector, error) {
-	return newInjector(name, modules)
+	return newInjector(name, modules...)
 }

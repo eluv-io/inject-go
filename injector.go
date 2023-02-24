@@ -18,7 +18,7 @@ type injector struct {
 	bindings map[bindingKey]resolvedBinding
 }
 
-func newInjector(name string, modules []Module) (Injector, error) {
+func newInjector(name string, modules ...Module) (*injector, error) {
 	injector := &injector{
 		name:     name,
 		bindings: make(map[bindingKey]resolvedBinding),
@@ -26,7 +26,7 @@ func newInjector(name string, modules []Module) (Injector, error) {
 	return injector.init(modules)
 }
 
-func (inj *injector) init(modules []Module) (Injector, error) {
+func (inj *injector) init(modules []Module) (*injector, error) {
 	modules = append(modules, inj.createInjectorModule())
 	var eager []*singletonBuilder
 	for _, m := range modules {

@@ -18,6 +18,14 @@ func CreateAppFrom(m inject.Module) (*App, error) {
 		return nil, err
 	}
 	app, err := inj.Get((*App)(nil))
+	if err != nil {
+		return nil, err
+	}
+
+	// also retrieve and print the dependency tree
+	tree, _ := inj.DependencyTree()
+	fmt.Println(tree)
+
 	return app.(*App), err
 }
 

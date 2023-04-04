@@ -468,11 +468,14 @@ type Injector interface {
 	CallTagged(taggedFunction interface{}) ([]interface{}, error)
 	Populate(populateStruct interface{}) error
 
-	// NewChildInjector creates a child injector for the specified modules. The
-	// bindings of this injector (the parent) will be available in the child
-	// injector in addition to the bindings defined in any child modules. An
-	// attempt to redefine bindings of the parent injector in child modules will
-	// result in an error.
+	// DependencyTree returns the full dependency tree of this injector.
+	DependencyTree() (DependencyTree, error)
+
+	// NewNamedChildInjector creates a child injector with the given name for
+	// the specified modules. The bindings of this injector (the parent) will be
+	// available in the child injector in addition to the bindings defined in
+	// any child modules. An attempt to redefine bindings of the parent injector
+	// in child modules will result in an error.
 	//
 	// The overridesType defines a binding key that will be looked up for a
 	// potential override module that will override bindings of the modules of
@@ -506,11 +509,22 @@ type Injector interface {
 	//    inj, err := inject.NewInjector(inject.Override(NewProductionModule()).With(overrides))
 	//
 	// See example/hierarchical for a working example.
+	NewNamedChildInjector(name string, overridesType interface{}, modules ...Module) (Injector, error)
+
+	// NewChildInjector calls NewNamedChildInjector with the caller's code
+	// location as name.
 	NewChildInjector(overridesType interface{}, modules ...Module) (Injector, error)
 }
 
-// NewInjector creates a new Injector for the specified Modules.
+// NewInjector calls NewNamedInjector with the caller's code location as name.
+func NewInjector(modules ...Module) (Injector, error) {
+	return NewNamedInjector(callerName(3, "root"), modules...)
+}
+
+// NewNamedInjector creates a new Injector with the given name for the specified Modules.
 //
 // Note that Modules are not thread-safe, it is your responsibility to make sure
 // all Modules have all bindings in place before passing them as parameters to NewInjector.
-func NewInjector(modules ...Module) (Injector, error) { return newInjector(modules) }
+func NewNamedInjector(name string, modules ...Module) (Injector, error) {
+	return newInjector(name, modules...)
+}

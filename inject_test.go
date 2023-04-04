@@ -1160,7 +1160,7 @@ func TestGetInjector(t *testing.T) {
 			object, err := injector.Get((*Injector)(nil))
 			require.NoError(t, err)
 			i := object.(Injector)
-			require.Exactly(t, injector.Injector, i)
+			require.Exactly(t, injector, i)
 		})
 	}
 }
@@ -1177,7 +1177,7 @@ func TestInjectInjector(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, 1, len(res))
 			i := res[0].(Injector)
-			require.Exactly(t, injector.Injector, i)
+			require.Exactly(t, injector, i)
 		})
 	}
 }
@@ -1539,7 +1539,7 @@ func TestInjectorString(t *testing.T) {
 	module.Bind((*SimpleInterface)(nil), SimpleStruct{}).ToSingleton(SimpleStruct{"hello"})
 	for _, injector := range createInjectors(t, module) {
 		t.Run(injector.name, func(t *testing.T) {
-			require.Contains(t, injector.String(), "{type:*inject.Injector}:this@0x")
+			require.Contains(t, injector.String(), "injector{"+injector.name+"}")
 		})
 	}
 }
@@ -1548,32 +1548,31 @@ func TestInjectorString(t *testing.T) {
 // * a regular injector based on the given module
 // * a child injector where all bindings are in the parent and
 // * a child injector where all bindings are in the child
-func createInjectors(t *testing.T, module Module) []*namedInjector {
-	var err error
-	var inj Injector
-	var injectors []*namedInjector
+func createInjectors(t *testing.T, module Module) []*injector {
+	var injectors []*injector
 
 	// regular injector
-	inj, err = NewInjector(module)
-	require.NoError(t, err)
-	injectors = append(injectors, &namedInjector{inj, "regular"})
-
+	{
+		inj, err := newInjector("regular", module)
+		require.NoError(t, err)
+		injectors = append(injectors, inj)
+	}
 	// empty child injector
 	{
-		inj, err = NewInjector(module)
+		inj, err := NewInjector(module)
 		require.NoError(t, err)
-		inj, err = inj.NewChildInjector(nil)
+		child, err := inj.NewNamedChildInjector("empty child", nil)
 		require.NoError(t, err)
-		injectors = append(injectors, &namedInjector{inj, "empty child"})
+		injectors = append(injectors, child.(*injector))
 	}
 
 	// child injector with empty parent injector
 	{
-		inj, err = NewInjector()
+		inj, err := NewInjector()
 		require.NoError(t, err)
-		inj, err = inj.NewChildInjector(nil, module)
+		child, err := inj.NewNamedChildInjector("empty parent", nil, module)
 		require.NoError(t, err)
-		injectors = append(injectors, &namedInjector{inj, "empty parent"})
+		injectors = append(injectors, child.(*injector))
 	}
 
 	return injectors

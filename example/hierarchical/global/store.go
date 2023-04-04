@@ -9,6 +9,6 @@ func newStore() hierarchical.Store {
 type FileStore struct {
 }
 
-func (s *FileStore) StoreTransanction(tx string) {
+func (s *FileStore) StoreTransaction(tx string) {
 	panic("implement me")
 }

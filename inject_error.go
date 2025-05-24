@@ -23,6 +23,7 @@ const (
 	injectErrorTypeNotFunction                    = "Argument is not a function"
 	injectErrorTypeNotInterfacePtr                = "Value is not an interface pointer"
 	injectErrorTypeNotStructPtr                   = "Value is not a struct pointer"
+	injectErrorTypeNotPtr                         = "Value is not a pointer"
 	injectErrorTypeNotSupportedBindType           = "Type is not supported for this binding method"
 	injectErrorTypeBindingErrors                  = "Errors with bindings"
 	injectErrorTypeWrapped                        = "Wrapped standard error"
@@ -47,6 +48,7 @@ var (
 	errNotFunction                    = newInjectError(injectErrorTypeNotFunction)
 	errNotInterfacePtr                = newInjectError(injectErrorTypeNotInterfacePtr)
 	errNotStructPtr                   = newInjectError(injectErrorTypeNotStructPtr)
+	errNotPtr                         = newInjectError(injectErrorTypeNotPtr)
 	errNotSupportedBindType           = newInjectError(injectErrorTypeNotSupportedBindType)
 	errBindingErrors                  = newInjectError(injectErrorTypeBindingErrors)
 	errBindingWrapped                 = newInjectError(injectErrorTypeWrapped)

@@ -1,6 +1,7 @@
 package inject
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
@@ -14,6 +15,8 @@ type injector struct {
 	name string
 	// the parent injector for child injectors or nil otherwise
 	parent *injector
+	// child injectors created by this injector
+	children []*injector
 	// resolved bindings
 	bindings map[bindingKey]resolvedBinding
 }
@@ -87,9 +90,11 @@ func (inj *injector) installModule(module *module) error {
 			return errAlreadyBound.withTag("bindingKey", bindingKey).withTag("foundBinding", foundBinding)
 		}
 		// check parent bindings, but allow replacing the binding of the injector
-		if inj.parent != nil && bindingKey.reflectType() != injectorReflectType {
-			if foundBinding, ok := inj.parent.bindings[bindingKey]; ok {
-				return errAlreadyBound.withTag("bindingKey", bindingKey).withTag("foundBinding", foundBinding).withTag("scope", "parent")
+		if bindingKey.reflectType() != injectorReflectType {
+			for parent := inj.parent; parent != nil; parent = parent.parent {
+				if foundBinding, ok := parent.bindings[bindingKey]; ok {
+					return errAlreadyBound.withTag("bindingKey", bindingKey).withTag("foundBinding", foundBinding).withTag("scope", "parent")
+				}
 			}
 		}
 		resolvedBinding, err := binding.resolvedBinding(module, inj)
@@ -143,12 +148,41 @@ func (inj *injector) Get(from interface{}) (interface{}, error) {
 }
 
 func (inj *injector) DependencyTree() (DependencyTree, error) {
-	c := newCtx(inj)
-	err := inj.validate(c)
+	root := inj.root()
+	c := newCtx(root)
+	err := root.dependencyTree(c)
 	if err != nil {
 		return nil, err
 	}
 	return c.tree(), nil
+}
+
+func (inj *injector) dependencyTree(c ctx) error {
+	err := inj.validate(c)
+	if err != nil {
+		return err
+	}
+
+	for _, child := range inj.children {
+		childStack := newCtx(child).root
+		err = c.push(childStack.key, childStack.binding)
+		if err != nil {
+			return err
+		}
+		if err := child.dependencyTree(c); err != nil {
+			return err
+		}
+		c.pop()
+	}
+	return nil
+}
+
+func (inj *injector) root() *injector {
+	root := inj
+	for root.parent != nil {
+		root = root.parent
+	}
+	return root
 }
 
 func (inj *injector) GetTagged(tag string, from interface{}) (interface{}, error) {
@@ -344,6 +378,26 @@ func (inj *injector) Populate(populateStructPtr interface{}) error {
 	return nil
 }
 
+func (inj *injector) Obtain(ptr interface{}) error {
+	targetVal := reflect.ValueOf(ptr)
+	if err := verifyIsPtr(reflect.TypeOf(ptr)); err != nil {
+		return err
+	}
+
+	typ := targetVal.Elem().Type()
+	if isInterface(typ) {
+		typ = reflect.PointerTo(typ)
+	}
+	res, err := inj.get(newBindingKey(typ))
+	if err != nil {
+		return err
+	}
+
+	resVal := reflect.ValueOf(res)
+	targetVal.Elem().Set(resVal)
+	return nil
+}
+
 func (inj *injector) NewChildInjector(overridesType interface{}, modules ...Module) (Injector, error) {
 	name := callerName(3, "child")
 	return inj.NewNamedChildInjector(name, overridesType, modules...)
@@ -359,6 +413,7 @@ func (inj *injector) NewNamedChildInjector(name string, overridesType interface{
 		parent:   inj,
 		bindings: make(map[bindingKey]resolvedBinding),
 	}
+	inj.children = append(inj.children, injector)
 	_, err := injector.init(modules)
 	if err != nil {
 		return nil, err
@@ -371,7 +426,15 @@ func (inj *injector) get(bindingKey bindingKey) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return binding.get()
+	res, err := binding.get()
+	if err != nil {
+		var ierr *injectError
+		if errors.As(err, &ierr) {
+			return nil, ierr.withTag("bindingKey", bindingKey)
+		}
+		return nil, err
+	}
+	return res, nil
 }
 
 func (inj *injector) getBinding(bindingKey bindingKey, nostack ...bool) (resolvedBinding, error) {
@@ -433,6 +496,13 @@ func (inj *injector) validateBindings(ctx ctx, bindingKeys []bindingKey) error {
 func verifyIsStructPtr(reflectType reflect.Type) error {
 	if !isStructPtr(reflectType) {
 		return errNotStructPtr.withTag("reflectType", reflectType)
+	}
+	return nil
+}
+
+func verifyIsPtr(reflectType reflect.Type) error {
+	if !isPtr(reflectType) {
+		return errNotPtr.withTag("reflectType", reflectType)
 	}
 	return nil
 }

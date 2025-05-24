@@ -17,6 +17,7 @@ type binding interface {
 
 type resolvedBinding interface {
 	fmt.Stringer
+	Short() string
 	validate(ctx) error
 	get() (interface{}, error)
 }
@@ -57,6 +58,10 @@ func (s *singletonBinding) String() string {
 	return fmt.Sprintf("singleton %T", s.singleton)
 }
 
+func (s *singletonBinding) Short() string {
+	return s.String()
+}
+
 func (s *singletonBinding) validate(ctx) error {
 	return nil
 }
@@ -93,6 +98,10 @@ func (c *constructorBinding) String() string {
 	return functionTag(c.constructor)
 }
 
+func (c *constructorBinding) Short() string {
+	return functionName(c.constructor)
+}
+
 func (c *constructorBinding) validate(ctx ctx) error {
 	err := c.injector.validateBindings(ctx, c.cache.bindingKeys)
 	if err != nil {
@@ -115,7 +124,7 @@ func (c *constructorBinding) resolvedBinding(module *module, injector *injector)
 
 type singletonConstructorBinding struct {
 	constructorBinding
-	loader *loader
+	loader loader
 }
 
 func newSingletonConstructorBinding(constructor interface{}) binding {
@@ -123,7 +132,9 @@ func newSingletonConstructorBinding(constructor interface{}) binding {
 }
 
 func (s *singletonConstructorBinding) get() (interface{}, error) {
-	return s.loader.load(s.constructorBinding.get)
+	return s.loader.load(s, func() (interface{}, error) {
+		return s.constructorBinding.get()
+	})
 }
 
 func (s *singletonConstructorBinding) resolvedBinding(module *module, injector *injector) (resolvedBinding, error) {
@@ -156,6 +167,10 @@ func (t *taggedConstructorBinding) String() string {
 	return functionTag(t.constructor)
 }
 
+func (t *taggedConstructorBinding) Short() string {
+	return functionName(t.constructor)
+}
+
 func (t *taggedConstructorBinding) validate(ctx ctx) error {
 	return t.injector.validateBindings(ctx, t.cache.bindingKeys)
 }
@@ -176,7 +191,7 @@ func (t *taggedConstructorBinding) resolvedBinding(module *module, injector *inj
 
 type taggedSingletonConstructorBinding struct {
 	taggedConstructorBinding
-	loader *loader
+	loader loader
 }
 
 func newTaggedSingletonConstructorBinding(constructor interface{}) binding {
@@ -184,7 +199,7 @@ func newTaggedSingletonConstructorBinding(constructor interface{}) binding {
 }
 
 func (t *taggedSingletonConstructorBinding) get() (interface{}, error) {
-	return t.loader.load(t.taggedConstructorBinding.get)
+	return t.loader.load(t, t.taggedConstructorBinding.get)
 }
 
 func (t *taggedSingletonConstructorBinding) resolvedBinding(module *module, injector *injector) (resolvedBinding, error) {
@@ -206,4 +221,13 @@ func callConstructor(constructor interface{}, reflectValues []reflect.Value) (in
 func functionTag(fn interface{}) string {
 	fnSignature := strings.TrimPrefix(fmt.Sprintf("%T", fn), "func")
 	return fmt.Sprintf("<%s%s>", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), fnSignature)
+}
+
+func functionName(fn interface{}) string {
+	name := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
+	idx := strings.LastIndex(name, "/")
+	if idx > 0 {
+		name = name[idx+1:]
+	}
+	return name
 }

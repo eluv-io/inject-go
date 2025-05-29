@@ -6,8 +6,7 @@ https://github.com/google/guice/wiki/Motivation
 This project is in no way affiliated with the Guice project, but I recommend reading their
 docs to better understand the concepts.
 
-
-Module
+# Module
 
 A Module is analogous to Guice's AbstractModule, used for setting up your dependencies.
 This allows you to bind structs, struct pointers, interfaces, and primitives to
@@ -39,8 +38,7 @@ A struct, struct pointer, or primitive must have a direct binding to a singleton
 
 All errors from binding will be returned as one error when calling inject.NewInjector(...).
 
-
-Injector
+# Injector
 
 An Injector is analogous to Guice's Injector, providing your dependencies.
 
@@ -65,8 +63,7 @@ We are able to get a value for SayHello.
 
 See the Injector interface for other methods.
 
-
-Constructor
+# Constructor
 
 A constructor is a function that takes injected values as parameters, and returns a value and an error.
 
@@ -151,8 +148,7 @@ verbose ones above:
 	module.BindSingletonConstructor(newSayHello)
 	module.BindConstructor(newSayHello)
 
-
-Eager Singletons
+# Eager Singletons
 
 A singleton bound through a constructor function can be marked as _eager_, in which case it will be constructed automatically by the injector during the injector creation process.
 
@@ -170,8 +166,7 @@ In addition, an eager singleton can be combined with an additional arbitrary fun
 		return module
 	}
 
-
-Calling Arbitrary Functions
+# Calling Arbitrary Functions
 
 Functions can be called from an injector using the Call function. These functions have the same parameter
 requirements as constructors, but can have any return types.
@@ -196,8 +191,7 @@ requirements as constructors, but can have any return types.
 
 See the methods on Module and Constructor for more details.
 
-
-Tags
+# Tags
 
 A tag allows named multiple bindings of one type. As an example, let's consider if we want to
 have multiple ways to say hello.
@@ -335,8 +329,7 @@ A constructor can mix tagged values with untagged values in the input struct.
 
 The CallTagged function works similarly to Call, except can take parameters like a tagged constructor.
 
-
-Child Injectors
+# Child Injectors
 
 A child injector is built from an existing injector (it's parent). It inherits all bindings and singletons of its parent
 injector and can add its own additional bindings. However, it is not allowed to redefine bindings that already exist in
@@ -349,14 +342,12 @@ that is not available at creation time of the (parent) injector.
 See this discussion on hierarchical injectors for further information and possible alternatives using factories:
 https://publicobject.com/2008/06/whats-hierarchical-injector.html
 
-
-Diagnostics
+# Diagnostics
 
 Both Module and Injector implement fmt.Stringer for inspection, however this may be added to in the future
 to allow semantic inspection of bindings.
 
-
-Unit Testing
+# Unit Testing
 
 For testing, production modules may be overridden with test bindings as follows:
 
@@ -366,7 +357,6 @@ For testing, production modules may be overridden with test bindings as follows:
 	override.Bind((*ExternalService)(nil)).ToSingleton(createMockExternalService())
 
 	injector, err := NewInjector(Override(module).With(override))
-
 */
 package inject // import "github.com/eluv-io/inject-go"
 
@@ -447,6 +437,18 @@ type SingletonBuilder interface {
 type Injector interface {
 	fmt.Stringer
 	Get(from interface{}) (interface{}, error)
+	// Obtain retrieves a value from the injector and stores it in the provided pointer. It is functionally equivalent
+	// to Get, but prevents the caller from having to cast the result to the correct type. Use it in a similar way to
+	// errors.As():
+	//
+	//		var c *C
+	//		err := injector.Obtain(&c)
+	//
+	//		var stringer fmt.Stringer
+	//		err := injector.Obtain(&stringer)
+	Obtain(ptr interface{}) error
+	// MustObtain is like Obtain, but panics if the value cannot be retrieved.
+	MustObtain(ptr interface{})
 	GetTagged(tag string, from interface{}) (interface{}, error)
 	GetTaggedBool(tag string) (bool, error)
 	GetTaggedInt(tag string) (int, error)

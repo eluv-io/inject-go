@@ -91,17 +91,30 @@ func TestChildInjector(t *testing.T) {
 }
 
 func TestChildInjectorErrors(t *testing.T) {
-	gm := inject.NewModule()
-	gm.Bind(GlobalScope("")).ToSingleton(gs)
-	ginj, err := inject.NewInjector(gm)
+	globalModule := inject.NewModule()
+	globalModule.Bind(GlobalScope("")).ToSingleton(gs)
+	globalInjector, err := inject.NewInjector(globalModule)
 	require.NoError(t, err)
 
-	t.Run("re-bind", func(t *testing.T) {
-		rm := inject.NewModule()
-		rm.Bind(GlobalScope("")).ToSingleton(GlobalScope("local"))
-		rinj, err := ginj.NewChildInjector(nil, rm)
+	t.Run("re-bind in child injector", func(t *testing.T) {
+		childModule := inject.NewModule()
+		childModule.Bind(GlobalScope("")).ToSingleton(GlobalScope("local"))
+		childInjector, err := globalInjector.NewChildInjector(nil, childModule)
 		require.Error(t, err)
-		require.Nil(t, rinj)
+		require.Nil(t, childInjector)
+	})
+
+	t.Run("re-bind in grand child injector", func(t *testing.T) {
+		childModule := inject.NewModule()
+		childInjector, err := globalInjector.NewChildInjector(nil, childModule)
+		require.NoError(t, err)
+		require.NotNil(t, childInjector)
+
+		grandChildModule := inject.NewModule()
+		grandChildModule.Bind(GlobalScope("")).ToSingleton(GlobalScope("local"))
+		grandChildInjector, err := childInjector.NewChildInjector(nil, grandChildModule)
+		require.Error(t, err)
+		require.Nil(t, grandChildInjector)
 	})
 }
 

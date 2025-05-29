@@ -203,7 +203,7 @@ func isStruct(reflectType reflect.Type) bool {
 }
 
 func isPtr(reflectType reflect.Type) bool {
-	return reflectType.Kind() == reflect.Ptr
+	return reflectType != nil && reflectType.Kind() == reflect.Ptr
 }
 
 func isFunc(reflectType reflect.Type) bool {

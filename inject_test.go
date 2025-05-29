@@ -857,6 +857,43 @@ func TestPopulateSimple(t *testing.T) {
 	}
 }
 
+func TestInjector_Obtain(t *testing.T) {
+	module := NewModule()
+	module.Bind((*SimpleInterface)(nil)).ToSingleton(&SimpleStruct{"another"})
+	module.Bind((*BarInterface)(nil)).ToSingleton(&BarStruct{2})
+	module.BindSingleton(&SimpleStruct{"no interface"})
+
+	for _, injector := range createInjectors(t, module) {
+		t.Run(injector.name, func(t *testing.T) {
+			fmt.Println(injector.DependencyTree())
+			t.Run("no pointer", func(t *testing.T) {
+				{
+					var pop BarInterface
+					err := injector.Obtain(pop)
+					require.ErrorContains(t, err, injectErrorTypeNotPtr)
+				}
+			})
+			t.Run("interface", func(t *testing.T) {
+				{
+					var pop BarInterface
+					err := injector.Obtain(&pop)
+					require.NoError(t, err)
+					require.Equal(t, &BarStruct{2}, pop)
+				}
+			})
+			t.Run("*struct", func(t *testing.T) {
+				{
+					var pop *SimpleStruct
+					err := injector.Obtain(&pop)
+					require.NoError(t, err)
+					require.Equal(t, SimpleStruct{"no interface"}, *pop)
+				}
+			})
+		})
+
+	}
+}
+
 // ***** BindTaggedConstant tests *****
 
 type PopulateStructOneTagWithInt struct {

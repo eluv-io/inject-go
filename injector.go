@@ -378,6 +378,13 @@ func (inj *injector) Populate(populateStructPtr interface{}) error {
 	return nil
 }
 
+func (inj *injector) MustObtain(ptr interface{}) {
+	err := inj.Obtain(ptr)
+	if err != nil {
+		panic(unwrap(err))
+	}
+}
+
 func (inj *injector) Obtain(ptr interface{}) error {
 	targetVal := reflect.ValueOf(ptr)
 	if err := verifyIsPtr(reflect.TypeOf(ptr)); err != nil {

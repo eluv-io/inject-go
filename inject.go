@@ -447,6 +447,8 @@ type Injector interface {
 	//		var stringer fmt.Stringer
 	//		err := injector.Obtain(&stringer)
 	Obtain(ptr interface{}) error
+	// MustObtain is like Obtain, but panics if the value cannot be retrieved.
+	MustObtain(ptr interface{})
 	GetTagged(tag string, from interface{}) (interface{}, error)
 	GetTaggedBool(tag string) (bool, error)
 	GetTaggedInt(tag string) (int, error)
